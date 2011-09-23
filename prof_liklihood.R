@@ -28,11 +28,19 @@ gev_negloglik<-function(xi, mu, beta){
 }
 
 # library(lmomco)
-#gev_negloglik<-function(Q_lmoms){
+# distribution='gev'
+# gev_negloglik<-function(...){
 #    # Note that I am taking the log myself, because the 'log=TRUE' argument
 #    # seems to fail in this function
-#    -sum(log(dlmomco(Q_muda, Q_lmoms)))
-#}
+#    xxx$type=distribution
+#    xxx$para=...
+#    -sum(log(dlmomco(Q_muda, xxx)))
+# }
+# muda_lmoms=lmom.ub(Q_muda)
+# x = mle(gev_negloglik, 
+#          start=as.list(lmom2par(muda_lmoms,distribution)$para),
+#          nobs=n,
+#          method="Nelder-Mead")
 
 ### STEP 2: Compute the maximum likelihood estimate, and confidence limits on
 ### the parameters
@@ -54,7 +62,7 @@ flood_return=c(1.1,1.3,1.5,1.8,2,5,7,10,15,20,30, 50, 70, 90,100)
 nn=20 # We divide the ci 'box' into n^3 values for searching
 storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^3) # Store the confidence limits
 countme=0 # Used for counting in the loop
-loglik_thresh=gev_negloglik(coef(x)[1],coef(x)[2],coef(x)[3])
+#loglik_thresh=gev_negloglik(coef(x)[1],coef(x)[2],coef(x)[3])
 
 for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
     for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
