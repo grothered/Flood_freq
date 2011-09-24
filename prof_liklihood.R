@@ -27,17 +27,19 @@ gev_negloglik<-function(xi, mu, beta){
     -sum(log(dgev(Q_muda, xi, mu, beta, log=FALSE)))
 }
 
+### Experimental effort to generalise this function
 # library(lmomco)
 # distribution='gev'
 # gev_negloglik<-function(...){
 #    # Note that I am taking the log myself, because the 'log=TRUE' argument
 #    # seems to fail in this function
 #    xxx$type=distribution
-#    xxx$para=...
+#    xxx$para=c(...)
 #    -sum(log(dlmomco(Q_muda, xxx)))
 # }
 # muda_lmoms=lmom.ub(Q_muda)
-# x = mle(gev_negloglik, 
+# source('mle3.R')
+# x = mle3(gev_negloglik, 
 #          start=as.list(lmom2par(muda_lmoms,distribution)$para),
 #          nobs=n,
 #          method="Nelder-Mead")
