@@ -14,7 +14,7 @@ input_data = scan('Muda_discharge.txt')
 probability_distribution= 'gev' #'gev' # 'gum', 'pe3', 'lp3', other choices from lmomco
 alpha =0.4 # Parameter to adjust empirical AEP estimates (Kuczera and Franks)
 nrand = 25000 # Number of bootstrap samples for confidence interval calculation -- 5000 was not really enough. 
-
+ci=0.9 # use ci*100 % confidence intervals
 
 
 
@@ -84,7 +84,7 @@ for(i in 1:nrand){
 five_quant = storeAEPs*NA
 ninetyfive_quant = storeAEPs*NA
 for(i in 1:length(storeAEPs)){
-    tmp = quantile(store_aep[,i], probs = c(0.05, 0.95))
+    tmp = quantile(store_aep[,i], probs = c((1-ci)/2, 1-(1-ci)/2))
     five_quant[i] = tmp[1]
     ninetyfive_quant[i] = tmp[2]
 }
@@ -118,7 +118,7 @@ points(1/storeAEPs, ninetyfive_quant,t='l',col='red',lty='dashed')
 points(1/styx_AEPs, styx_Q,col='blue',pch=19)
 # add some grid lines
 grid(nx=10,ny=10)
-legend('topleft', c(paste('Fitted model (', probability_distribution, ')'), 'Approximate 90% Confidence Intervals', 'Data'), 
+legend('topleft', c(paste('Fitted model (', probability_distribution, ')'), paste('Approximate ', ci*100, '% Confidence Intervals',sep=""), 'Data'), 
         lty=c('solid', 'dashed', NA),
         col=c('black', 'red', 'blue'),
         pch=c(NA, NA,19), 

@@ -15,14 +15,31 @@
 # PARAMETERS THAT THE USER WILL PROABALY WANT TO ADJUST
 #######################################################
 Q_muda=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='gev'
+distribution='gum'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
-cilevel = 0.9 # Level of confidence intervals
+cilevel = 0.95 # Level of confidence intervals
+
+
+startpars=list(9.0,7.0) # First guess of parameters for distribution
+
 
 
 ######################################################
 # MAIN PART OF THE CODE
 ######################################################
+distribution_df = length(startpars) # Number of free parameters for the distribution
+
+# Sanity check
+if(distribution %in% c('gev','lp3')){
+    if(distribution_df!=3){
+        stop(paste('Error: Wrong number of starting parameters for', distribution))
+    }
+}else if(distribution %in% c('gum')){
+    if(distribution_df!=2){
+        stop(paste('Error: Wrong number of starting parameters for', distribution))
+    }
+
+}
 
 # Number of data points
 n = length(Q_muda)
@@ -36,7 +53,8 @@ Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 
 ### STEP 1: Define a function which calculates the negative log likelihood of
 ### the distribution we want to fit
-library(fExtremes) # This has a dgev function (gev density)
+#library(fExtremes) # This has a dgev function (gev density)
+library(FAdist)
 
 gev_negloglik<-function(x1, x2, x3=NaN){
     # Compute the negative log likelihood of a range of distributions for the
@@ -44,26 +62,37 @@ gev_negloglik<-function(x1, x2, x3=NaN){
     # distribution chosen. However, two parameter distributions should only
     # refer to x1 and x2, and use the default x3 value.
 
-    if(is.nan(x3)){
-        para=vec2par(c(x1,x2), type=distribution)
-    }else{
-        para=vec2par(c(x1,x2,x3), type=distribution)
-    }
-
-    -sum(log(dlmomco(Q_muda, para)))
     # 'distribution' is defined at the top of the script
-    #switch(distribution,
-    #    gev= {
-    #        -sum(log(dgev(Q_muda, x1, x2, x3, log=FALSE)))
-    #        # Note that I am taking the log myself, because the 'log=TRUE' argument
-    #        # seems to fail in this function. FIXME: File bug report 
-    #    },
-    #    gum= {
-    #        -sum(log(dgev(Q_muda, x1, x2, log=FALSE)))
-    #        # Note that I am taking the log myself, because the 'log=TRUE' argument
-    #        # seems to fail in this function. FIXME: File bug report
-    #    }
-    #    )
+    switch(distribution,
+        gev= {
+            -sum((dgev(Q_muda, x1, x2, x3, log=TRUE)))
+        },
+        gum= {
+            -sum((dgumbel(Q_muda, x1, x2, log=TRUE)))
+        },
+        lp3 = {
+            -sum((dlgamma3(Q_muda, x1, x2, x3, log=TRUE)))
+        }
+        )
+}
+
+gev_quantile<-function(data,x1,x2,x3=NaN){
+    # Compute the quantile function for a range of distributions for the data
+    # The meaning of x1, x2 and x3 depends on the particular
+    # distribution chosen. However, two parameter distributions should only
+    # refer to x1 and x2, and use the default x3 value.
+    switch(distribution,
+        gev= {
+            qgev(data, x1, x2, x3)
+        },
+        gum= {
+            qgumbel(data, x1, x2)
+        },
+        lp3 = {
+            qlgamma3(data, x1, x2, x3)
+        }
+        )
+
 }
 
 ### Experimental effort to generalise this function
@@ -88,9 +117,10 @@ gev_negloglik<-function(x1, x2, x3=NaN){
 
 #startpars=list(xi=0., mu=400,beta=150)
 #startpars=list(x1=0., x2=400,x3=150)
-muda_lmoms=lmom.ub(Q_muda)
-muda_startpars = as.list(lmom2par(muda_lmoms, distribution)$para)
+#muda_lmoms=lmom.ub(Q_muda)
+#muda_startpars = as.list(lmom2par(muda_lmoms, distribution)$para)
 # Set the names of the startpars as required by 'mle'
+muda_startpars=startpars
 if(length(muda_startpars)==3){
     names(muda_startpars)=c('x1','x2','x3')
     }else if(length(muda_startpars)==2){
@@ -111,39 +141,54 @@ ci.x = confint(x, level=cilevel)
 ### parameter values inside the cilevel confidence limits 
 
 flood_return=c(1.1,1.3,1.5,1.8,2,5,7,10,15,20,30, 50, 70, 90,100)
-nn=20 # We divide the ci 'box' into n^3 values for searching
-storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^3) # Store the confidence limits
+nn=40 # We divide the ci 'box' into n^3 values for searching
+storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
 countme=0 # Used for counting in the loop
 #loglik_thresh=gev_negloglik(coef(x)[1],coef(x)[2],coef(x)[3])
 
-for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
-    for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
-        for(k in seq(ci.x[3,1], ci.x[3,2],len=nn)){
-        countme=countme+1  
-        storeme[countme,1:length(flood_return)] = qgev(1-1/flood_return, xi=i, mu=j,beta=k)
-        storeme[countme,length(flood_return)+1] = gev_negloglik(i,j,k)
+if(distribution_df==3){
+
+    for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
+        for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
+            for(k in seq(ci.x[3,1], ci.x[3,2],len=nn)){
+                countme=countme+1  
+                storeme[countme,1:length(flood_return)] = gev_quantile(1-1/flood_return, i, j,k)
+                storeme[countme,length(flood_return)+1] = gev_negloglik(i,j,k)
+            }
         }
     }
+}else if(distribution_df==2){
+
+    for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
+        for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
+            countme=countme+1  
+            storeme[countme,1:length(flood_return)] = gev_quantile(1-1/flood_return, i, j)
+            storeme[countme,length(flood_return)+1] = gev_negloglik(i,j)
+        }
+    }
+
+
+
 }
 # Examples of computing confidence intervals for the return period can be found
 # in gevrlevelPlot
 # Note that according to Bolker, the -2loglikelihood is approximately chisq
 # distributed with df = number of free parameters (3 in the case of a gev).
 # This means that we search for all likelihoods within qchisq(cilevel,num_free_parameters)/2 of
-# the maximum likelihood
-gev_df=3 # Note that gevrlevelPlot in fExtremes always uses gev_df=1
+# the maximum likelihood. On the other hand, the fExtremes package always uses df=1
 
 # Compute indicies of points which are inside the confidence limit
 tmp = which(storeme[,length(flood_return)+1]< 
-            gev_negloglik(coef(x)[1], coef(x)[2], coef(x)[3]) + qchisq(cilevel,gev_df)/2 )
+            gev_negloglik(coef(x)[1], coef(x)[2], coef(x)[3]) + qchisq(cilevel,distribution_df)/2 )
 conf_limits= apply(storeme[tmp,1:length(flood_return)], 2, range) # The max and min = confidence limit
 
 # Make the plot
-plot(flood_return,qgev(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3]) , log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge')
+plot(flood_return,gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3]) ,
+     log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge')
 points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
-legend('topleft', c('Fitted curve', paste(cilevel*100, '% Confidence Limits (Profile likelihood)',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
-dev.copy(pdf,'Flood_frequency_plot_gev_profLike.pdf')
+legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (Profile likelihood)',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
+dev.copy(pdf,paste('Flood_frequency_plot_', distribution,'_profLike.pdf',sep=""))
 dev.off()
