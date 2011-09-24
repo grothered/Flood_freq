@@ -27,11 +27,15 @@ plot(Q_ARI_est, Q_muda, xlab='ARI estimate', ylab='Discharge (m^3/s)', main = 'M
 dev.copy(pdf, file='muda_discharge_ari.pdf')
 dev.off()
 
-###########################################
+###########################################################################
 #
-# Try fitting Gumbel with maximum liklihood
+# Try fitting with maximum likelihood
 #
-###########################################
+# Note that the confidence intervals in the 'ismev' package are simple
+# asymptotic approximations, which are probably not very accurate (and from
+# experience, are probably too narrow).
+#
+###########################################################################
 
 # Import R library for fitting GEV, Gumbel using Maximum Liklihood methods
 library(ismev)
@@ -42,7 +46,8 @@ muda_gum=gum.fit(Q_muda) # muda_gum describes the fitted distribution
 # Look at diagnostic plot.
 gum.diag(muda_gum)
 
-# Save the diagnostic plot using a more complex (and more flexible) method than we used above
+# Save the diagnostic plot using a more complex (and more flexible) method than
+# we used above
 pdf(file='muda_gum_mle_diagnostic.pdf', width=8,height=6)
 gum.diag(muda_gum)
 dev.off()
@@ -53,10 +58,12 @@ muda_gev=gev.fit(Q_muda) # muda_gum describes the fitted distribution
 # Look at diagnostic plot.
 gev.diag(muda_gev)
 
+# And so on ...
+
 
 ########################################################################
-# The fExtremes package provides the option for a more realistic profile
-# likelihood confidence interval plot for a given return level.
+# The 'fExtremes' package provides the option for a more realistic 'profile
+# likelihood' confidence interval plot for a given return level.
 library(fExtremes)
 muda_gev2 = gevFit(Q_muda)
 
@@ -64,38 +71,43 @@ par(mfrow=c(2,2))
 # Diagnostic plot
 summary(muda_gev2)
 
-# We can do a plot for a single return level
+# We can do a profile-likelihood plot for a single return level
 gevrlevelPlot(muda_gev2,100)
 
 # It's nice to have the complete return level plot -- one way to do this is
-# with a loop
-
-return_levels=seq(2.0,100,by=4)
-store_CIs = matrix(NA,ncol=3,nrow=length(return_levels)) # Use this to store output
-for(i in 1:length(return_levels)){
-    # Compute confidence intervals
-    x = gevrlevelPlot(muda_gev2,return_levels[i], ci=0.9) # 90% Confidence intervals -- there can be problems with these
-    # Store the confidence intervals and parameter estimate for the return_levels[i] event
-    store_CIs[i,]=as.numeric(x)[1:3]
-}
-# Plot the result
-plot(return_levels,store_CIs[,2],ylim=range(store_CIs[,c(1,3)]),t='o',
-     xlab='AEP of 1/Y',ylab='Discharge', log='x')
-points(return_levels,store_CIs[,1],col=2,t='l',lty='dotted')
-points(return_levels,store_CIs[,3],col=2,t='l',lty='dotted')
-#points(Q_ARI_est,Q_muda,col='blue',pch=19)
-points(1/Q_AEP_est,Q_muda,col='blue',pch=19)
+# with a loop to calculate the return levels for enough points to do the plot. 
+# A better way is coded in the prof_likelihood.R script. The following code
+# has been used to test the latter script.
+#
+#return_levels=seq(2.0,100,by=4)
+#store_CIs = matrix(NA,ncol=3,nrow=length(return_levels)) # Use this to store output
+#for(i in 1:length(return_levels)){
+#    # Compute confidence intervals
+#    x = gevrlevelPlot(muda_gev2,return_levels[i], ci=0.9) # 90% Confidence intervals -- there can be problems with these
+#    # Store the confidence intervals and parameter estimate for the return_levels[i] event
+#    store_CIs[i,]=as.numeric(x)[1:3]
+#}
+## Plot the result
+#plot(return_levels,store_CIs[,2],ylim=range(store_CIs[,c(1,3)]),t='o',
+#     xlab='AEP of 1/Y',ylab='Discharge', log='x')
+#points(return_levels,store_CIs[,1],col=2,t='l',lty='dotted')
+#points(return_levels,store_CIs[,3],col=2,t='l',lty='dotted')
+##points(Q_ARI_est,Q_muda,col='blue',pch=19)
+#points(1/Q_AEP_est,Q_muda,col='blue',pch=19)
 
 ###########################################
 #
 # Try L-moments for the Gumbel
 #
 ###########################################
-#write.table(Q_muda,file='Muda_discharge.txt', row.names=F, col.names=F)
-#source('river_freq_lmom.R') #This script does L-moments.
+write.table(Q_muda,file='Muda_discharge.txt', row.names=F, col.names=F)
+source('river_freq_lmom.R') #This script does L-moments.
 
 # To fit a gev, change the 'distribution' parameter to 'gev' in the
 # 'river_freq_lmom.R' file, and then source('river_freq_lmom.R')
+
+
+## FURTHER EXPERIMENTATION BELOW
 
 
 # Import R library for fitting distributions with L-moments

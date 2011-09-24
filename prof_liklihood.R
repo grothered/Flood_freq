@@ -1,10 +1,28 @@
 ## Example using profile likelihood to compute the confidence limits for a
-## return level plot
+## return level plot.
 
-muda=read.table('muda_river.txt')
+# This script has been tested by comparing its confidence intervals with the
+# profile likelihood CIs that can be computed in the fExtremes package. See the
+# muda_river.R script for more info. Note that fExtremes assumes that the
+# likelihood is chisquare distributed with one degree of freedom, whereas in
+# this script, we follow Bolker (20XX, Ecological models and Data in R) and
+# assume that the likelihood is chi-square distributed with degrees of freedom
+# = number of free parameters in the model (e.g. 3 for a gev, 2 for a normal,
+# etc).
 
-# Extract the ranked discharge
-Q_muda = c(muda[,3], muda[,6])
+
+#######################################################
+# PARAMETERS THAT THE USER WILL PROABALY WANT TO ADJUST
+#######################################################
+Q_muda=scan('Muda_discharge.txt') # Input data = vector of discharges
+distribution='gev'
+alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
+cilevel = 0.9 # Level of confidence intervals
+
+
+######################################################
+# MAIN PART OF THE CODE
+######################################################
 
 # Number of data points
 n = length(Q_muda)
@@ -13,18 +31,39 @@ n = length(Q_muda)
 Q_rank = seq(1,n)
 
 # Compute the estimate of the AEP for each discharge
-alpha = 0.4 # Chosen based on Kuczera and Franks, Draft ARR
 Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 
 
 ### STEP 1: Define a function which calculates the negative log likelihood of
 ### the distribution we want to fit
-
 library(fExtremes) # This has a dgev function (gev density)
-gev_negloglik<-function(xi, mu, beta){
-    # Note that I am taking the log myself, because the 'log=TRUE' argument
-    # seems to fail in this function
-    -sum(log(dgev(Q_muda, xi, mu, beta, log=FALSE)))
+
+gev_negloglik<-function(x1, x2, x3=NaN){
+    # Compute the negative log likelihood of a range of distributions for the
+    # Q_muda data. The meaning of x1, x2 and x3 depends on the particular
+    # distribution chosen. However, two parameter distributions should only
+    # refer to x1 and x2, and use the default x3 value.
+
+    if(is.nan(x3)){
+        para=vec2par(c(x1,x2), type=distribution)
+    }else{
+        para=vec2par(c(x1,x2,x3), type=distribution)
+    }
+
+    -sum(log(dlmomco(Q_muda, para)))
+    # 'distribution' is defined at the top of the script
+    #switch(distribution,
+    #    gev= {
+    #        -sum(log(dgev(Q_muda, x1, x2, x3, log=FALSE)))
+    #        # Note that I am taking the log myself, because the 'log=TRUE' argument
+    #        # seems to fail in this function. FIXME: File bug report 
+    #    },
+    #    gum= {
+    #        -sum(log(dgev(Q_muda, x1, x2, log=FALSE)))
+    #        # Note that I am taking the log myself, because the 'log=TRUE' argument
+    #        # seems to fail in this function. FIXME: File bug report
+    #    }
+    #    )
 }
 
 ### Experimental effort to generalise this function
@@ -47,18 +86,29 @@ gev_negloglik<-function(xi, mu, beta){
 ### STEP 2: Compute the maximum likelihood estimate, and confidence limits on
 ### the parameters
 
-startpars=list(xi=0., mu=400,beta=150)
-x = mle(gev_negloglik, start=startpars, nobs=n, method='Nelder-Mead')
+#startpars=list(xi=0., mu=400,beta=150)
+#startpars=list(x1=0., x2=400,x3=150)
+muda_lmoms=lmom.ub(Q_muda)
+muda_startpars = as.list(lmom2par(muda_lmoms, distribution)$para)
+# Set the names of the startpars as required by 'mle'
+if(length(muda_startpars)==3){
+    names(muda_startpars)=c('x1','x2','x3')
+    }else if(length(muda_startpars)==2){
+        names(muda_startpars)=c('x1','x2')
+        }
 
-cilevel = 0.9
+x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
+
 ci.x = confint(x, level=cilevel)
 
 
-### Step 3: Numerically compute the 90% confidence intervals for a range
-### of flood return periods
-### Do this by taking a box around the parameter values contained in ci.x, and
-### searching through this, ignoring values for which the negative log-liklihood
-### makes that parameter set outside of the real confidence interval. 
+### Step 3: Numerically compute the cilevel confidence intervals for a range
+### of flood return periods, using a 'brute-force' method.
+### METHOD: Take a box around the parameter values contained in ci.x, and
+### search through this. Not all points in this 'box' will be
+### inside the cilevel confidence interval. We record the likelihood value of all
+### points that we search, and later determine confidence intervals only for
+### parameter values inside the cilevel confidence limits 
 
 flood_return=c(1.1,1.3,1.5,1.8,2,5,7,10,15,20,30, 50, 70, 90,100)
 nn=20 # We divide the ci 'box' into n^3 values for searching
@@ -79,9 +129,10 @@ for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
 # in gevrlevelPlot
 # Note that according to Bolker, the -2loglikelihood is approximately chisq
 # distributed with df = number of free parameters (3 in the case of a gev).
-# This means that we search for all likelihoods within qchisq(cilevel,3)/2 of
+# This means that we search for all likelihoods within qchisq(cilevel,num_free_parameters)/2 of
 # the maximum likelihood
 gev_df=3 # Note that gevrlevelPlot in fExtremes always uses gev_df=1
+
 # Compute indicies of points which are inside the confidence limit
 tmp = which(storeme[,length(flood_return)+1]< 
             gev_negloglik(coef(x)[1], coef(x)[2], coef(x)[3]) + qchisq(cilevel,gev_df)/2 )
