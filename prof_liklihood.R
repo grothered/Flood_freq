@@ -21,11 +21,13 @@ alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft A
 cilevel = 0.90 # Level of confidence intervals
 
 
-profile_cis=FALSE
+profile_cis=FALSE # Set to FALSE, or read below.
 # profile_cis: Flag to use profile likelihood for parameter confidence limits
 # (otherwise just invert hessian). This should not matter unless there is a
-# problem with the confidence limits. However, TRUE is more sensitive to
-# numerical problems, so FALSE should probably be used always
+# problem with the confidence limits, because in the end we just use these
+# confidence limits as an initial estimate for further searching of the profile
+# likelihood confidence limits. However, TRUE is more sensitive to numerical
+# problems, so FALSE should probably be used always
 
 startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
 #startpars=list(9.0,7.0) # First guess of parameters for distribution
@@ -62,11 +64,10 @@ Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 
 ### STEP 1: Define a function which calculates the negative log likelihood of
 ### the distribution we want to fit
-#library(fExtremes) # This has a dgev function (gev density)
 library(stats4)
 library(FAdist)
 
-
+## DEFINE GENERIC Log-likelihood, quantile and probability functions
 gev_negloglik<-function(x1, x2, x3=NaN){
     # Compute the negative log likelihood of a range of distributions for the
     # Q_muda data. The meaning of x1, x2 and x3 depends on the particular
@@ -106,30 +107,28 @@ gev_quantile<-function(data,x1,x2,x3=NaN){
 
 }
 
-### Experimental effort to generalise this function
-# library(lmomco)
-# distribution='gev'
-# gev_negloglik<-function(...){
-#    # Note that I am taking the log myself, because the 'log=TRUE' argument
-#    # seems to fail in this function
-#    xxx$type=distribution
-#    xxx$para=c(...)
-#    -sum(log(dlmomco(Q_muda, xxx)))
-# }
-# muda_lmoms=lmom.ub(Q_muda)
-# source('mle3.R')
-# x = mle3(gev_negloglik, 
-#          start=as.list(lmom2par(muda_lmoms,distribution)$para),
-#          nobs=n,
-#          method="Nelder-Mead")
+gev_probability<-function(data,x1,x2,x3=NaN){
+    # Compute the quantile function for a range of distributions for the data
+    # The meaning of x1, x2 and x3 depends on the particular
+    # distribution chosen. However, two parameter distributions should only
+    # refer to x1 and x2, and use the default x3 value.
+    switch(distribution,
+        gev= {
+            pgev(data, x1, x2, x3)
+        },
+        gum= {
+            pgumbel(data, x1, x2)
+        },
+        lp3 = {
+            plgamma3(data, x1, x2, x3)
+        }
+        )
+
+}
 
 ### STEP 2: Compute the maximum likelihood estimate, and confidence limits on
 ### the parameters
 
-#startpars=list(xi=0., mu=400,beta=150)
-#startpars=list(x1=0., x2=400,x3=150)
-#muda_lmoms=lmom.ub(Q_muda)
-#muda_startpars = as.list(lmom2par(muda_lmoms, distribution)$para)
 # Set the names of the startpars as required by 'mle'
 muda_startpars=startpars
 if(length(muda_startpars)==3){
@@ -144,7 +143,8 @@ x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
 ## Compute confidence limits
 if(profile_cis){
     # Compute profile likelihood confidence limits. This can be numerically
-    # hard for some cases, in which case errors will occur
+    # hard for some cases, in which case errors will occur. Probably should not
+    # use this. 
     ci.x = confint(x, level=cilevel)
 }else{
     # Use the asymptotic ci's from mle
@@ -173,8 +173,8 @@ flood_return=c(1.1,1.3,1.5,1.8,2,5,7,10,15,20,30, 50, 70, 90,100)
 nn=60 # We divide the ci 'box' into n^3 values for searching
 storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
 countme=0 # Used for counting in the loop
-#loglik_thresh=gev_negloglik(coef(x)[1],coef(x)[2],coef(x)[3])
 
+# Begin search
 if(distribution_df==3){
 
     for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
@@ -199,6 +199,8 @@ if(distribution_df==3){
 
 
 }
+# End search
+
 # Examples of computing confidence intervals for the return period can be found
 # in gevrlevelPlot
 # Note that according to Bolker, the -2loglikelihood is approximately chisq
@@ -213,12 +215,39 @@ conf_limits= apply(storeme[tmp,1:length(flood_return)], 2, range) # The max and 
 
 # Make the plot
 pdf(file=paste('Flood_frequency_plot_', distribution,'_maxLike.pdf',sep=""), width=7,height=5)
-plot(flood_return,gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3]) ,
+
+fitted_model = gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3])
+plot(flood_return, fitted_model ,
      log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
      main=river_site,cex.main=1.5)
 points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
-legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (Profile Likelihood)',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
+legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), 
+       paste(cilevel*100, '% Confidence Limits (Profile Likelihood)',sep=""), 'Data'), 
+       lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19), 
+       bty='o',bg='white')
 dev.off()
+
+## Write data for later plotting / investigation
+write.table(cbind(flood_return,fitted_model, conf_limits[1,], conf_limits[2,]), 
+            file=paste('Fitted_',distribution,'_', river_site, '_proflike.txt', sep=''), 
+            col.names=c('AEP of 1/Y', 'Model (Max Likelihood)', paste('lower ci',cilevel), 
+            paste('upper ci',cilevel)), row.names=FALSE, sep="," )
+
+# Quantile-quantile plot
+theoretical_quantiles=gev_quantile(1-Q_AEP_est, coef(x)[1], coef(x)[2], coef(x)[3])
+pdf(file=paste('Quantile_plot_',distribution,'_maxLike.pdf',sep=""),width=8,height=6)
+plot(Q_muda, theoretical_quantiles, xlab='Measured Discharge (m^3/s)', ylab='Theoretical Discharge (m^3/s)', main=river_site)
+abline(0,1)
+dev.off()
+
+# Probability plot
+theoretical_probs=gev_probability(Q_muda, coef(x)[1], coef(x)[2], coef(x)[3])
+pdf(file=paste('Probability_plot_',distribution,'_maxLike.pdf',sep=""),width=8,height=6)
+plot(Q_AEP_est, 1-theoretical_probs, xlab='Empirical AEP', ylab='Theoretical AEP', main=river_site)
+abline(0,1)
+dev.off()
+
+

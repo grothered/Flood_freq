@@ -11,7 +11,7 @@
 # User modified parameters
 site_name = 'Muda River'
 input_data = scan('Muda_discharge.txt')
-probability_distribution= 'gev' #'gev' # 'gum', 'pe3', 'lp3', other choices from lmomco
+probability_distribution= 'lp3' #'gev' # 'gum', 'pe3', 'lp3', other choices from lmomco
 alpha =0.4 # Parameter to adjust empirical AEP estimates (Kuczera and Franks)
 nrand = 25000 # Number of bootstrap samples for confidence interval calculation -- 5000 was not really enough. 
 ci=0.95 # use ci*100 % confidence intervals
@@ -142,4 +142,4 @@ plot(1-styx_AEPs,theoretical_probabilities , xlab='Empirical Probability', ylab=
 abline(0,1)
 dev.off()
 
-write.table(cbind(storeAEPs,fitted, five_quant, ninetyfive_quant), file=paste('Fitted_',probability_distribution,'_', site_name, '.txt', sep=''), col.names=c('AEP', 'Model', '5%', '95%'), row.names=FALSE, sep="," )
+write.table(cbind(storeAEPs,fitted, five_quant, ninetyfive_quant), file=paste('Fitted_',probability_distribution,'_', site_name, '.txt', sep=''), col.names=c('AEP', 'Model (Lmoments)', '5%', '95%'), row.names=FALSE, sep="," )
