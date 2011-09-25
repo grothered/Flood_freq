@@ -220,10 +220,5 @@ points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
-if(profile_cis){
-    citype='Profile likelihood'
-}else{
-    citype='Profile likelihood'
-}
-legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (', citype,')',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
+legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (Profile Likelihood)',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
 dev.off()
