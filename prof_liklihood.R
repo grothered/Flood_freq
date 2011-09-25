@@ -16,12 +16,12 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='lp3'
+distribution='gev'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
-cilevel = 0.90 # Level of confidence intervals
+cilevel = 0.9 # Level of confidence intervals
 
 
-profile_cis=FALSE # Set to FALSE, or read below.
+profile_cis=TRUE # Set to FALSE, or read below.
 # profile_cis: Flag to use profile likelihood for parameter confidence limits
 # (otherwise just invert hessian). This should not matter unless there is a
 # problem with the confidence limits, because in the end we just use these
@@ -29,7 +29,8 @@ profile_cis=FALSE # Set to FALSE, or read below.
 # likelihood confidence limits. However, TRUE is more sensitive to numerical
 # problems, so FALSE should probably be used always
 
-startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
+#startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
+startpars=list(-0.10,470,170)
 #startpars=list(9.0,7.0) # First guess of parameters for distribution
 
 
@@ -137,7 +138,7 @@ if(length(muda_startpars)==3){
         names(muda_startpars)=c('x1','x2')
         }
 
-x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
+x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='BFGS')
 
 
 ## Compute confidence limits
@@ -218,7 +219,7 @@ pdf(file=paste('Flood_frequency_plot_', distribution,'_maxLike.pdf',sep=""), wid
 
 fitted_model = gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3])
 plot(flood_return, fitted_model ,
-     log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
+     log='x',t='l', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
      main=river_site,cex.main=1.5)
 points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
