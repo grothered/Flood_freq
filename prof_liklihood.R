@@ -14,12 +14,14 @@
 #######################################################
 # PARAMETERS THAT THE USER WILL PROABALY WANT TO ADJUST
 #######################################################
-Q_muda=scan('Muda_discharge.txt') # Input data = vector of discharges
+river_site='Muda River'
+input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
 distribution='gum'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.95 # Level of confidence intervals
 
 
+#startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
 startpars=list(9.0,7.0) # First guess of parameters for distribution
 
 
@@ -27,6 +29,7 @@ startpars=list(9.0,7.0) # First guess of parameters for distribution
 ######################################################
 # MAIN PART OF THE CODE
 ######################################################
+Q_muda=sort(input_data, decreasing=T)
 distribution_df = length(startpars) # Number of free parameters for the distribution
 
 # Sanity check
@@ -54,7 +57,9 @@ Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 ### STEP 1: Define a function which calculates the negative log likelihood of
 ### the distribution we want to fit
 #library(fExtremes) # This has a dgev function (gev density)
+library(stats4)
 library(FAdist)
+
 
 gev_negloglik<-function(x1, x2, x3=NaN){
     # Compute the negative log likelihood of a range of distributions for the
@@ -183,12 +188,13 @@ tmp = which(storeme[,length(flood_return)+1]<
 conf_limits= apply(storeme[tmp,1:length(flood_return)], 2, range) # The max and min = confidence limit
 
 # Make the plot
+pdf(file=paste('Flood_frequency_plot_', distribution,'_profLike.pdf',sep=""), width=7,height=5)
 plot(flood_return,gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3]) ,
-     log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge')
+     log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
+     main=river_site,cex.main=1.5)
 points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
 legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (Profile likelihood)',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
-dev.copy(pdf,paste('Flood_frequency_plot_', distribution,'_profLike.pdf',sep=""))
 dev.off()

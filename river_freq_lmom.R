@@ -14,7 +14,7 @@ input_data = scan('Muda_discharge.txt')
 probability_distribution= 'gev' #'gev' # 'gum', 'pe3', 'lp3', other choices from lmomco
 alpha =0.4 # Parameter to adjust empirical AEP estimates (Kuczera and Franks)
 nrand = 25000 # Number of bootstrap samples for confidence interval calculation -- 5000 was not really enough. 
-ci=0.9 # use ci*100 % confidence intervals
+ci=0.95 # use ci*100 % confidence intervals
 
 
 
