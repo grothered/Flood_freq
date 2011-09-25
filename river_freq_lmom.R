@@ -11,7 +11,7 @@
 # User modified parameters
 site_name = 'Muda River'
 input_data = scan('Muda_discharge.txt')
-probability_distribution= 'gev' #'gev' # 'gum', 'pe3', 'lp3', other choices from lmomco
+probability_distribution= 'gum' #'gev' # 'gum', 'pe3', 'lp3', other choices from lmomco
 alpha =0.4 # Parameter to adjust empirical AEP estimates (Kuczera and Franks)
 nrand = 25000 # Number of bootstrap samples for confidence interval calculation -- 5000 was not really enough. 
 ci=0.95 # use ci*100 % confidence intervals
@@ -118,7 +118,7 @@ points(1/storeAEPs, ninetyfive_quant,t='l',col='red',lty='dashed')
 points(1/styx_AEPs, styx_Q,col='blue',pch=19)
 # add some grid lines
 grid(nx=10,ny=10)
-legend('topleft', c(paste('Fitted model (', probability_distribution, ')'), paste('Approximate ', ci*100, '% Confidence Intervals',sep=""), 'Data'), 
+legend('topleft', c(paste('Fitted model (', probability_distribution, ', lmoments)'), paste('Approximate ', ci*100, '% Confidence Intervals',sep=""), 'Data'), 
         lty=c('solid', 'dashed', NA),
         col=c('black', 'red', 'blue'),
         pch=c(NA, NA,19), 

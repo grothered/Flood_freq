@@ -225,7 +225,7 @@ points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
-legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), 
+legend('topleft', c(paste('Fitted curve (', distribution, ', maxlikelihood)', sep=""), 
        paste(cilevel*100, '% Confidence Limits (Profile Likelihood)',sep=""), 'Data'), 
        lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19), 
        bty='o',bg='white')
