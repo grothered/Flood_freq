@@ -16,13 +16,13 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='gum'
+distribution='lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.95 # Level of confidence intervals
+profile_cis=FALSE # Use profile likelihood for confidence limits (otherwise just invert hessian)
 
-
-#startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
-startpars=list(9.0,7.0) # First guess of parameters for distribution
+startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
+#startpars=list(9.0,7.0) # First guess of parameters for distribution
 
 
 
@@ -134,7 +134,19 @@ if(length(muda_startpars)==3){
 
 x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
 
-ci.x = confint(x, level=cilevel)
+
+## Compute confidence limits
+if(profile_cis){
+    # Compute profile likelihood confidence limits. This can be numerically
+    # hard for some cases, in which case errors will occur
+    ci.x = confint(x, level=cilevel)
+}else{
+    # Use the asymptotic ci's from mle
+    tmp = coef(summary(x))
+    #tvalue = qt((1-cilevel)/2,df=distribution_df)
+    tvalue = qnorm(1-(1-cilevel)/3) # According to Bolker, the parameter estimates are normally distributed
+    ci.x = cbind(tmp[,1]-tvalue*tmp[,2], tmp[,1]+tvalue*tmp[,2])
+}
 
 
 ### Step 3: Numerically compute the cilevel confidence intervals for a range
@@ -188,7 +200,7 @@ tmp = which(storeme[,length(flood_return)+1]<
 conf_limits= apply(storeme[tmp,1:length(flood_return)], 2, range) # The max and min = confidence limit
 
 # Make the plot
-pdf(file=paste('Flood_frequency_plot_', distribution,'_profLike.pdf',sep=""), width=7,height=5)
+pdf(file=paste('Flood_frequency_plot_', distribution,'_maxLike.pdf',sep=""), width=7,height=5)
 plot(flood_return,gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3]) ,
      log='x',t='o', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
      main=river_site,cex.main=1.5)
@@ -196,5 +208,10 @@ points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
-legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (Profile likelihood)',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
+if(profile_cis){
+    citype='Profile likelihood'
+}else{
+    citype='Asymptotic'
+}
+legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (', citype,')',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
 dev.off()
