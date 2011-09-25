@@ -18,8 +18,14 @@ river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
 distribution='lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
-cilevel = 0.95 # Level of confidence intervals
-profile_cis=FALSE # Use profile likelihood for confidence limits (otherwise just invert hessian)
+cilevel = 0.90 # Level of confidence intervals
+
+
+profile_cis=FALSE
+# profile_cis: Flag to use profile likelihood for parameter confidence limits
+# (otherwise just invert hessian). This should not matter unless there is a
+# problem with the confidence limits. However, TRUE is more sensitive to
+# numerical problems, so FALSE should probably be used always
 
 startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
 #startpars=list(9.0,7.0) # First guess of parameters for distribution
@@ -143,9 +149,15 @@ if(profile_cis){
 }else{
     # Use the asymptotic ci's from mle
     tmp = coef(summary(x))
-    #tvalue = qt((1-cilevel)/2,df=distribution_df)
-    tvalue = qnorm(1-(1-cilevel)/3) # According to Bolker, the parameter estimates are normally distributed
-    ci.x = cbind(tmp[,1]-tvalue*tmp[,2], tmp[,1]+tvalue*tmp[,2])
+    # According to Bolker, the parameter estimates are normally distributed
+    # Here, we take confidence limits that are deliberately too large. Later
+    # we will search through this region for parameter values which are within
+    # the asymptotic profile likelihood confidence limits
+    zvalue = qnorm(1-(1-cilevel)/3)  
+    # Note -- in theory, zvalue=qnorm(1-(1-cilevel)/2) should be enough. But as
+    # the latter result is asymptotic, I am trying to be conservative by
+    # dividing by 3 instead
+    ci.x = cbind(tmp[,1]-zvalue*tmp[,2], tmp[,1]+zvalue*tmp[,2])
 }
 
 
@@ -158,7 +170,7 @@ if(profile_cis){
 ### parameter values inside the cilevel confidence limits 
 
 flood_return=c(1.1,1.3,1.5,1.8,2,5,7,10,15,20,30, 50, 70, 90,100)
-nn=40 # We divide the ci 'box' into n^3 values for searching
+nn=60 # We divide the ci 'box' into n^3 values for searching
 storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
 countme=0 # Used for counting in the loop
 #loglik_thresh=gev_negloglik(coef(x)[1],coef(x)[2],coef(x)[3])
@@ -211,7 +223,7 @@ grid(nx=10,ny=10)
 if(profile_cis){
     citype='Profile likelihood'
 }else{
-    citype='Asymptotic'
+    citype='Profile likelihood'
 }
 legend('topleft', c(paste('Fitted curve (', distribution, ')', sep=""), paste(cilevel*100, '% Confidence Limits (', citype,')',sep=""), 'Data'), lty=c('solid','dashed',NA),col=c('black', 'red', 'steelblue'), pch=c(NA,NA,19) ,bty='o',bg='white')
 dev.off()
