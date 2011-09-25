@@ -16,12 +16,12 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='gev'
+distribution='lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
-cilevel = 0.9 # Level of confidence intervals
+cilevel = 0.95 # Level of confidence intervals
 
 
-profile_cis=TRUE # Set to FALSE, or read below.
+profile_cis=FALSE # Set to FALSE, or read below.
 # profile_cis: Flag to use profile likelihood for parameter confidence limits
 # (otherwise just invert hessian). This should not matter unless there is a
 # problem with the confidence limits, because in the end we just use these
@@ -29,8 +29,8 @@ profile_cis=TRUE # Set to FALSE, or read below.
 # likelihood confidence limits. However, TRUE is more sensitive to numerical
 # problems, so FALSE should probably be used always
 
-#startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
-startpars=list(-0.10,470,170)
+startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
+#startpars=list(-0.10,470,170)
 #startpars=list(9.0,7.0) # First guess of parameters for distribution
 
 
@@ -138,7 +138,7 @@ if(length(muda_startpars)==3){
         names(muda_startpars)=c('x1','x2')
         }
 
-x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='BFGS')
+x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
 
 
 ## Compute confidence limits
