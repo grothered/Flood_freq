@@ -16,7 +16,7 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='lp3'
+distribution='gum'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.95 # Level of confidence intervals
 
@@ -29,7 +29,7 @@ profile_cis=FALSE # Set to FALSE, or read below.
 # likelihood confidence limits. However, TRUE is more sensitive to numerical
 # problems, so FALSE should probably be used always
 
-startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
+#startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
 #startpars=list(-0.10,470,170)
 #startpars=list(9.0,7.0) # First guess of parameters for distribution
 
@@ -39,8 +39,34 @@ startpars=list(9.0,7.0, 1.0) # First guess of parameters for distribution
 # MAIN PART OF THE CODE
 ######################################################
 Q_muda=sort(input_data, decreasing=T)
-distribution_df = length(startpars) # Number of free parameters for the distribution
 
+
+# Guess start parameters using L-moments
+library(lmomco)
+if(distribution=='lp3'){
+    Muda_lmoms = lmom.ub(log(Q_muda))
+    lmomfit=lmom2par(Muda_lmoms, 'pe3')
+    # The lp3 is parameterised differently in lmomco and FAdist. This converts
+    # between them
+    tmp=as.numeric(lmomfit$para)
+    startpars =list(x1=4/tmp[3]^2,
+                    x2=0.5*tmp[2]*tmp[3], 
+                    x3=tmp[1]-2*tmp[2]/tmp[3])
+    
+}else{
+    Muda_lmoms = lmom.ub(Q_muda)
+    lmomfit = lmom2par(Muda_lmoms, distribution)
+    tmp=as.numeric(lmomfit$para)
+    if(distribution=='gev'){
+        # The gev is parameterised slightly differently in lmomco and FAdist
+        startpars=list(x1=-tmp[3],x2=tmp[2],x3=tmp[1])
+    }else{
+        startpars=list(x1=tmp[2],x2=tmp[1])
+    }
+}
+
+
+distribution_df = length(startpars) # Number of free parameters for the distribution
 # Sanity check
 if(distribution %in% c('gev','lp3')){
     if(distribution_df!=3){
