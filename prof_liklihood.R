@@ -48,7 +48,7 @@ if(distribution=='lp3'){
     # between them
     tmp=as.numeric(lmomfit$para)
     startpars =list(x1=4/tmp[3]^2,
-                    x2=1/(0.5*tmp[2]*tmp[3]), 
+                    x2=1/(0.5*tmp[2]*abs(tmp[3])), 
                     x3=-(tmp[1]-2*tmp[2]/tmp[3]))
     
 }else{
@@ -194,7 +194,7 @@ if(profile_cis){
 ### points that we search, and later determine confidence intervals only for
 ### parameter values inside the cilevel confidence limits 
 
-flood_return=c(1.1,1.3,1.5,1.8,2,5,7,10,15,20,30, 50, 70, 90,100)
+flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,15,20,30, 50, 70, 90,100)
 nn=60 # We divide the ci 'box' into n^3 values for searching
 storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
 countme=0 # Used for counting in the loop
@@ -243,7 +243,7 @@ pdf(file=paste('Flood_frequency_plot_', distribution,'_maxLike.pdf',sep=""), wid
 
 fitted_model = gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3])
 plot(flood_return, fitted_model ,
-     log='x',t='l', ylim=c(0,max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
+     log='x',t='l', ylim=c(min(conf_limits),max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
      main=river_site,cex.main=1.5)
 points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
 points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
