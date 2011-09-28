@@ -16,7 +16,7 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='gum'  # Set to 'gum', 'gev', or 'lp3'
+distribution='lp3'  # Set to 'gum', 'gev', or 'lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.95 # Level of confidence intervals
 
