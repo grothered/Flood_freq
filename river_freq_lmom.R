@@ -1,12 +1,14 @@
-# Code to analyse the styx river data, from Example 7 in the ARR Flood
-# frequency analysis draft update chapter (Kuczera and Franks)
+# Code to do Flood Frequency Analysis using annual maxima series, as described
+# in the the ARR Flood frequency analysis draft update chapter (Kuczera and
+# Franks)
 
 # This uses L-moments to fit a distribution supported in the L-moments package,
 # and a parametric bootstrap to compute quantile confidence limits.
 
 
-# The code was initially written for the styx river, using a gev distribution. 
-# Thus, 
+# The code was initially written for the styx river, using a gev distribution,
+# and then generalised -- hence, in the code, often the term 'styx' refers to
+# the river site, and 'gev' refers to the chosen distribution
 
 # User modified parameters
 site_name = 'Muda River'
@@ -50,7 +52,7 @@ styx_gev = lmom2par(styx_lmoms, distribution) #pargev(styx_lmoms)
 
 # Parameters for bootstrap
 #nrand = 5000 # Number of samples -- 5000 was not really enough
-storeAEPs = 1/c(100, 90, 80, 70, 60, 50, 40, 30, 20, 15, 10, 7, 5, 1.1) # We will store simulated quantiles at these AEP values
+storeAEPs = 1/c(100, 90, 80, 70, 60, 50, 40, 30, 20, 15, 10, 7, 5,3,2,1.8,1.5,1.3, 1.1) # We will store simulated quantiles at these AEP values
 
 # Storage 
 store_gev = matrix(NA, nrow=nrand,ncol=length(styx_gev$para))
@@ -77,7 +79,7 @@ for(i in 1:nrand){
         
 }
 
-# Compute 5% and 95% confidence limits. Note that according to Kuczera and
+# Compute confidence limits using empirical quantiles from bootstrapping
 # Franks, these should underestimate the true 90% confidence limits, because
 # the sampling assumed that the fitted parameters were the true parameters
 # This seems to fit with my experience
@@ -137,9 +139,21 @@ plot(styx_Q, theoretical_quantiles, xlab='Measured Discharge (m^3/s)', ylab='The
 abline(0,1)
 dev.off()
 
+#####################################
+#
+# Probability plot
+#
+#####################################
+
 pdf(file=paste('Probability_plot_',probability_distribution,'_lmom.pdf',sep=""),width=8,height=6)
 plot(1-styx_AEPs,theoretical_probabilities , xlab='Empirical Probability', ylab='Theoretical Probability', main=site_name)
 abline(0,1)
 dev.off()
 
-write.table(cbind(storeAEPs,fitted, five_quant, ninetyfive_quant), file=paste('Fitted_',probability_distribution,'_', site_name, 'lmom.txt', sep=''), col.names=c('AEP', 'Model (Lmoments)', '5%', '95%'), row.names=FALSE, sep="," )
+#####################################
+#
+# Write output
+#
+#####################################
+
+write.table(cbind(storeAEPs,fitted, five_quant, ninetyfive_quant), file=paste('Fitted_',probability_distribution,'_', site_name, 'lmom.txt', sep=''), col.names=c('AEP', 'Model (Lmoments)', 'Lower Confidence Interval', 'Upper Confidence Interval'), row.names=FALSE, sep="," )

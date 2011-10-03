@@ -1,5 +1,5 @@
 ## Example using profile likelihood to compute the confidence limits for a
-## return level plot.
+## return level plot. Presently supports gumbel, gev, and log-pearson 3 distribution
 
 # This script has been tested by comparing its confidence intervals with the
 # profile likelihood CIs that can be computed in the fExtremes package. See the
@@ -88,11 +88,11 @@ Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 
 
 ### STEP 1: Define a function which calculates the negative log likelihood of
-### the distribution we want to fit
+### the distribution we want to fit, and the related quantile and probability
+### functions
 library(stats4)
 library(FAdist)
 
-## DEFINE GENERIC Log-likelihood, quantile and probability functions
 gev_negloglik<-function(x1, x2, x3=NaN){
     # Compute the negative log likelihood of a range of distributions for the
     # Q_muda data. The meaning of x1, x2 and x3 depends on the particular
@@ -182,6 +182,9 @@ if(profile_cis){
     # Note -- in theory, zvalue=qnorm(1-(1-cilevel)/2) should be enough. But as
     # the latter result is asymptotic, I am trying to be conservative by
     # dividing by 3 instead
+    # FIXME: Should put a check in the code to ensure that the boundary of this
+    # search region really is outside the profile likelihood confidence
+    # intervals
     ci.x = cbind(tmp[,1]-zvalue*tmp[,2], tmp[,1]+zvalue*tmp[,2])
 }
 
