@@ -1,4 +1,4 @@
-These scripts can be used to do certain types of flood frequency analysis.
+These scripts can be used to do certain types of flood frequency analysis. 
 
 The script 'river_freq_lmom.R' fits various curves to annual maxima data using L-moments, with parametric bootstrap confidence intervals.
 
