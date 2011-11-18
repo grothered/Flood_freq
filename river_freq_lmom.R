@@ -80,9 +80,10 @@ for(i in 1:nrand){
 }
 
 # Compute confidence limits using empirical quantiles from bootstrapping
-# Franks, these should underestimate the true 90% confidence limits, because
-# the sampling assumed that the fitted parameters were the true parameters
-# This seems to fit with my experience
+# These may be expected to slightly underestimate the true 90% confidence
+# limits, because the sampling assumed that the fitted parameters were the true
+# parameters This seems to fit with my experience. However, numerous papers
+# indicate that the parametric bootstrap is one of the better methods.
 five_quant = storeAEPs*NA
 ninetyfive_quant = storeAEPs*NA
 for(i in 1:length(storeAEPs)){
