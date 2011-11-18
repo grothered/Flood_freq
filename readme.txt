@@ -5,3 +5,5 @@ The script 'river_freq_lmom.R' fits various curves to annual maxima data using L
 The script 'prof_liklihood.R' fits various curves to annual maxima data using the method of maximum likelihood, with profile likelihood confidence intervals.
 
 The script 'muda_river.R' illustrates the use of several other R packages for frequency analysis, for example 'ismev' and 'fExtremes'
+
+The script 'ismev_extra.R' contains a function which makes a pretty plot with the outputs of gum.fit in ismev, and also outputs information on the fit to a file.
