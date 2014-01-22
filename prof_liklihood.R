@@ -12,7 +12,8 @@ river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
 distribution='lp3'  # Set to 'gum', 'gev', or 'lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
-cilevel = 0.95 # Level of confidence intervals
+cilevel = 0.90 # Level of confidence intervals
+flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,seq(15,100,by=5)) # Return levels
 
 
 ######################################################
@@ -149,7 +150,6 @@ if(length(muda_startpars)==3){
 x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
 
 ### Compute confidence limits (also for return periods)
-flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,15,20,30, 50, 70, 90,100)
 
 # Make positive log likelihood function and quantile function with right interface
 # , so we can use profile_function
