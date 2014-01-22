@@ -86,6 +86,7 @@ Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 ### functions
 library(stats4)
 library(FAdist)
+source('lp3.R')
 
 gev_negloglik<-function(x1, x2, x3=NaN){
     # Compute the negative log likelihood of a range of distributions for the
@@ -102,7 +103,7 @@ gev_negloglik<-function(x1, x2, x3=NaN){
             -sum((dgumbel(Q_muda, x1, x2, log=TRUE)))
         },
         lp3 = {
-            -sum((dlgamma3(Q_muda, x1, x2, x3, log=TRUE)))
+            -sum((dlp3(Q_muda, x1, x2, x3, log=TRUE)))
         }
         )
 }
@@ -120,7 +121,7 @@ gev_quantile<-function(data,x1,x2,x3=NaN){
             qgumbel(data, x1, x2)
         },
         lp3 = {
-            qlgamma3(data, x1, x2, x3)
+            qlp3(data, x1, x2, x3)
         }
         )
 
@@ -139,7 +140,7 @@ gev_probability<-function(data,x1,x2,x3=NaN){
             pgumbel(data, x1, x2)
         },
         lp3 = {
-            plgamma3(data, x1, x2, x3)
+            plp3(data, x1, x2, x3)
         }
         )
 
