@@ -19,10 +19,12 @@ profile_function<-function(var_to_profile, log_lik, maxlikpar,
         # Function used with optim to get range of a function within the acceptable likelihood region
         if(lowerCI){
             # Minimised to get lower CI
-            out=var_to_profile(x) + ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
+            #out=var_to_profile(x) + ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
+            out=var_to_profile(x) + max(0, -(log_lik(x) - (log_lik(maxlikpar)-qchisq(level,1)/2)))*.Machine$double.xmax
         }else{
             # Maximised to get upper CI
-            out=var_to_profile(x) - ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
+            #out=var_to_profile(x) - ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
+            out=var_to_profile(x) - max(0, -(log_lik(x) - (log_lik(maxlikpar)-qchisq(level,1)/2)))*.Machine$double.xmax
         }
         return(out)
     }

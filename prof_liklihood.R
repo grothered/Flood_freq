@@ -10,7 +10,7 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='gev'  # Set to 'gum', 'gev', or 'lp3'
+distribution='lp3'  # Set to 'gum', 'gev', or 'lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.90 # Level of confidence intervals
 flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,seq(15,100,by=5)) # Return levels
@@ -88,8 +88,8 @@ gev_negloglik<-function(x1, x2, x3=NaN){
     # 'distribution' is defined at the top of the script
     switch(distribution,
         gev= {
-            #-sum((FAdist::dgev(Q_muda, x1, x2, x3, log=TRUE)))
-            -sum((dgev(Q_muda, x1, x2, x3, log=TRUE)))
+            -sum((FAdist::dgev(Q_muda, x1, x2, x3, log=TRUE)))
+            #-sum((dgev(Q_muda, x1, x2, x3, log=TRUE)))
         },
         gum= {
             -sum((FAdist::dgumbel(Q_muda, x1, x2, log=TRUE)))
@@ -199,7 +199,7 @@ mleFit = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
     #### points that we search, and later determine confidence intervals only for
     #### parameter values inside the cilevel confidence limits 
     #
-    nn=20 # We divide the ci 'box' into n^3 values for searching
+    nn=80 # We divide the ci 'box' into n^3 values for searching
     storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
     countme=0 # Used for counting in the loop
     ijk=matrix(NA,ncol=3,nrow=nn^distribution_df)
