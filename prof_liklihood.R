@@ -15,18 +15,6 @@ alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft A
 cilevel = 0.95 # Level of confidence intervals
 
 
-#######################################################
-
-profile_cis=FALSE # Set to FALSE, or read below.
-# profile_cis: Flag to use profile likelihood for parameter confidence limits
-# (otherwise just invert hessian). This should not matter unless there is a
-# problem with the confidence limits, because in the end we just use these
-# confidence limits as an initial estimate for further searching of the profile
-# likelihood confidence limits. However, TRUE is more sensitive to numerical
-# problems, so FALSE should probably be used always. Will remove if further
-# testing confirms this.
-
-
 ######################################################
 # MAIN PART OF THE CODE
 ######################################################
@@ -87,6 +75,7 @@ Q_AEP_est  = (Q_rank - alpha)/(n + 1 - 2*alpha)
 library(stats4)
 library(FAdist)
 source('lp3.R')
+source('profile_function.R')
 
 gev_negloglik<-function(x1, x2, x3=NaN){
     # Compute the negative log likelihood of a range of distributions for the
@@ -159,82 +148,91 @@ if(length(muda_startpars)==3){
 
 x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
 
-
-## Compute confidence limits
-if(profile_cis){
-    # Compute profile likelihood confidence limits. This can be numerically
-    # hard for some cases, in which case errors will occur. Probably should not
-    # use this. 
-    ci.x = confint(x, level=cilevel)
-}else{
-    # Use the asymptotic ci's from mle
-    tmp = coef(summary(x))
-    # According to Bolker, the parameter estimates are normally distributed
-    # Here, we take confidence limits that are deliberately too large. Later
-    # we will search through this region for parameter values which are within
-    # the asymptotic profile likelihood confidence limits
-    zvalue = qnorm(1-(1-cilevel)/3)  
-    # Note -- in theory, zvalue=qnorm(1-(1-cilevel)/2) should be enough. But as
-    # the latter result is asymptotic, I am trying to be conservative by
-    # dividing by 3 instead
-    # FIXME: Should put a check in the code to ensure that the boundary of this
-    # search region really is outside the profile likelihood confidence
-    # intervals
-    ci.x = cbind(tmp[,1]-zvalue*tmp[,2], tmp[,1]+zvalue*tmp[,2])
-}
-
-
-### Step 3: Numerically compute the cilevel confidence intervals for a range
-### of flood return periods, using a 'brute-force' method.
-### METHOD: Take a box around the parameter values contained in ci.x, and
-### search through this. Not all points in this 'box' will be
-### inside the cilevel confidence interval. We record the likelihood value of all
-### points that we search, and later determine confidence intervals only for
-### parameter values inside the cilevel confidence limits 
-
+# Compute confidence limits (also for return periods)
 flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,15,20,30, 50, 70, 90,100)
-nn=60 # We divide the ci 'box' into n^3 values for searching
-storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
-countme=0 # Used for counting in the loop
 
-# Begin search
+conf_limits=matrix(NA,ncol=2,nrow=length(flood_return)
+# Make positive log likelihood function
 if(distribution_df==3){
-
-    for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
-        for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
-            for(k in seq(ci.x[3,1], ci.x[3,2],len=nn)){
-                countme=countme+1  
-                storeme[countme,1:length(flood_return)] = gev_quantile(1-1/flood_return, i, j,k)
-                storeme[countme,length(flood_return)+1] = gev_negloglik(i,j,k)
-            }
-        }
-    }
+     log_lik<-function(x) -gev_negloglik(x[1], x[2],x[3])
 }else if(distribution_df==2){
-
-    for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
-        for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
-            countme=countme+1  
-            storeme[countme,1:length(flood_return)] = gev_quantile(1-1/flood_return, i, j)
-            storeme[countme,length(flood_return)+1] = gev_negloglik(i,j)
-        }
-    }
-
-
-
+     log_lik<-function(x) -gev_negloglik(x[1], x[2])
 }
-# End search
 
-# Examples of computing confidence intervals for the return period can be found
-# in gevrlevelPlot
-# Note that according to Bolker, the -2loglikelihood is approximately chisq
-# distributed with df = number of free parameters (3 in the case of a gev).
-# This means that we search for all likelihoods within qchisq(cilevel,num_free_parameters)/2 of
-# the maximum likelihood. On the other hand, the fExtremes package always uses df=1
-
-# Compute indicies of points which are inside the confidence limit
-tmp = which(storeme[,length(flood_return)+1]< 
-            gev_negloglik(coef(x)[1], coef(x)[2], coef(x)[3]) + qchisq(cilevel,distribution_df)/2 )
-conf_limits= apply(storeme[tmp,1:length(flood_return)], 2, range) # The max and min = confidence limit
+for(i in 1:length(flood_return)){
+    conf_limits[i,]=profile_function(var_to_profile<-function(x, p=(1-1/(flood_return))) gev_quantile(p,x),
+                                     log_lik=log_lik,
+                                     maxlikpar=x@coef,
+                                     level=cilevel)
+}
+### Compute confidence limits
+## Use the asymptotic ci's from mle
+#tmp = coef(summary(x))
+## According to Bolker, the parameter estimates are normally distributed
+## Here, we take confidence limits that are deliberately too large. Later
+## we will search through this region for parameter values which are within
+## the asymptotic profile likelihood confidence limits
+#zvalue = qnorm(1-(1-cilevel)/3)  
+## Note -- in theory, zvalue=qnorm(1-(1-cilevel)/2) should be enough. But as
+## the latter result is asymptotic, I am trying to be conservative by
+## dividing by 3 instead
+## FIXME: Should put a check in the code to ensure that the boundary of this
+## search region really is outside the profile likelihood confidence
+## intervals
+#ci.x = cbind(tmp[,1]-zvalue*tmp[,2], tmp[,1]+zvalue*tmp[,2])
+#
+#
+#
+#### Step 3: Numerically compute the cilevel confidence intervals for a range
+#### of flood return periods, using a 'brute-force' method.
+#### METHOD: Take a box around the parameter values contained in ci.x, and
+#### search through this. Not all points in this 'box' will be
+#### inside the cilevel confidence interval. We record the likelihood value of all
+#### points that we search, and later determine confidence intervals only for
+#### parameter values inside the cilevel confidence limits 
+#
+##nn=60 # We divide the ci 'box' into n^3 values for searching
+#storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
+#countme=0 # Used for counting in the loop
+#
+## Begin search
+#if(distribution_df==3){
+#
+#    for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
+#        for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
+#            for(k in seq(ci.x[3,1], ci.x[3,2],len=nn)){
+#                countme=countme+1  
+#                storeme[countme,1:length(flood_return)] = gev_quantile(1-1/flood_return, i, j,k)
+#                storeme[countme,length(flood_return)+1] = gev_negloglik(i,j,k)
+#            }
+#        }
+#    }
+#}else if(distribution_df==2){
+#
+#    for(i in seq(ci.x[1,1], ci.x[1,2],len=nn)){
+#        for(j in seq(ci.x[2,1], ci.x[2,2],len=nn)){
+#            countme=countme+1  
+#            storeme[countme,1:length(flood_return)] = gev_quantile(1-1/flood_return, i, j)
+#            storeme[countme,length(flood_return)+1] = gev_negloglik(i,j)
+#        }
+#    }
+#
+#
+#
+#}
+## End search
+#
+## Examples of computing confidence intervals for the return period can be found
+## in gevrlevelPlot
+## Note that according to Bolker, the -2loglikelihood is approximately chisq
+## distributed with df = number of free parameters (3 in the case of a gev).
+## This means that we search for all likelihoods within qchisq(cilevel,num_free_parameters)/2 of
+## the maximum likelihood. On the other hand, the fExtremes package always uses df=1
+#
+## Compute indicies of points which are inside the confidence limit
+#tmp = which(storeme[,length(flood_return)+1]< 
+#            gev_negloglik(coef(x)[1], coef(x)[2], coef(x)[3]) + qchisq(cilevel,distribution_df)/2 )
+#conf_limits= apply(storeme[tmp,1:length(flood_return)], 2, range) # The max and min = confidence limit
 
 # Make the plot
 pdf(file=paste('Flood_frequency_plot_', distribution,'_maxLike.pdf',sep=""), width=7,height=5)
