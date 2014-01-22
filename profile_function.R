@@ -30,9 +30,9 @@ profile_function<-function(var_to_profile, log_lik, maxlikpar,
     }
     # Find the min/max value of var_to_profile within the acceptable likelihood region
     lowerP=optim(searchStart[1,], f , method=optim.method, control=list(maxit=maxit)) 
-    lowerP=optim(lowerP$par, f , method=optim.method, control=list(maxit=maxit)) 
+    #lowerP=optim(lowerP$par, f , method=optim.method, control=list(maxit=maxit)) 
     upperP=optim(searchStart[2,],f,lowerCI=FALSE, method=optim.method, control=list(fnscale=-1,maxit=maxit))
-    upperP=optim(upperP$par,f,lowerCI=FALSE, method=optim.method, control=list(fnscale=-1,maxit=maxit))
+    #upperP=optim(upperP$par,f,lowerCI=FALSE, method=optim.method, control=list(fnscale=-1,maxit=maxit))
 
     if(lowerP$convergence!=0 | upperP$convergence!=0) warning('profile_function did not have convergence==0')
 

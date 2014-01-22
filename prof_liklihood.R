@@ -10,7 +10,7 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='lp3'  # Set to 'gum', 'gev', or 'lp3'
+distribution='gev'  # Set to 'gum', 'gev', or 'lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.90 # Level of confidence intervals
 flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,seq(15,100,by=5)) # Return levels
@@ -180,7 +180,7 @@ mleFit = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
     ## Here, we take confidence limits that are deliberately too large. Later
     ## we will search through this region for parameter values which are within
     ## the asymptotic profile likelihood confidence limits
-    zvalue = qnorm(1-(1-cilevel)/3)  
+    zvalue = qnorm(1-(1-cilevel)/5)  
     ## Note -- in theory, zvalue=qnorm(1-(1-cilevel)/2) should be enough. But as
     ## the latter result is asymptotic, I am trying to be conservative by
     ## dividing by 3 instead
@@ -199,7 +199,7 @@ mleFit = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
     #### points that we search, and later determine confidence intervals only for
     #### parameter values inside the cilevel confidence limits 
     #
-    nn=80 # We divide the ci 'box' into n^3 values for searching
+    nn=60 # We divide the ci 'box' into n^3 values for searching
     storeme = matrix(NA,ncol=length(flood_return)+1,nrow=nn^distribution_df) # Store the confidence limits
     countme=0 # Used for counting in the loop
     ijk=matrix(NA,ncol=3,nrow=nn^distribution_df)
@@ -265,7 +265,7 @@ mleFit = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
                                          maxlikpar=mleFit@coef,
                                          searchStart=rbind(conf_par_min[i,],conf_par_max[i,]),
                                          level=cilevel,
-                                         method='Nelder-Mead')
+                                         method='BFGS')
     }
 
 
@@ -306,5 +306,26 @@ pdf(file=paste('Probability_plot_',distribution,'_maxLike.pdf',sep=""),width=8,h
 plot(Q_AEP_est, 1-theoretical_probs, xlab='Empirical AEP', ylab='Theoretical AEP', main=river_site)
 abline(0,1)
 dev.off()
+
+
+###############################
+# Try with MCMC, but still using profile-likelihood reasoning
+log_lik_prt<-function(x){
+     out=log_lik(x)
+     if(is.nan(out)|!is.finite(out)) out=-Inf
+     return(out)
+ }
+library(MCMCpack)
+xxx=MCMCmetrop1R(log_lik_prt,mleFit@coef,burnin=10000,mcmc=1e+06)
+# Compute log-likelihood for each
+xxxLL=apply(as.matrix(xxx),1,log_lik_prt)
+# Compute q100 stats
+xxQ100=apply(as.matrix(xxx),1, f<-function(x) gev_qf(x,p=0.99))
+# Find where LL is in the acceptable zone
+xxTmp=which(xxxLL>log_lik_prt(mleFit@coef)-qchisq(0.95,1)/2)
+summary(xxQ100[xxTmp])
+xxx[xxTmp[which.max(xxQ100[xxTmp])],]
+# This may suggest that the profile likelihood search tends to miss the most
+# extreme regions that are still within the 'acceptable zone'
 
 
