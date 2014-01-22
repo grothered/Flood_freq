@@ -3,13 +3,7 @@
 
 # This script has been tested by comparing its confidence intervals with the
 # profile likelihood CIs that can be computed in the fExtremes package. See the
-# muda_river.R script for more info. Note that fExtremes assumes that the
-# likelihood is chisquare distributed with one degree of freedom, whereas in
-# this script, we follow Bolker (20XX, Ecological models and Data in R) and
-# assume that the likelihood is chi-square distributed with degrees of freedom
-# = number of free parameters in the model (e.g. 3 for a gev, 2 for a normal,
-# etc).
-
+# muda_river.R script for more info. 
 
 #######################################################
 # PARAMETERS THAT THE USER WILL PROABALY WANT TO ADJUST
