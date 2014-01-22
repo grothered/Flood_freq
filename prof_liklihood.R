@@ -148,23 +148,27 @@ if(length(muda_startpars)==3){
 
 x = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
 
-# Compute confidence limits (also for return periods)
+### Compute confidence limits (also for return periods)
 flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,15,20,30, 50, 70, 90,100)
 
-conf_limits=matrix(NA,ncol=2,nrow=length(flood_return)
-# Make positive log likelihood function
+# Make positive log likelihood function and quantile function with right interface
+# , so we can use profile_function
 if(distribution_df==3){
      log_lik<-function(x) -gev_negloglik(x[1], x[2],x[3])
+     gev_qf<-function(x, p) gev_quantile(p,x[1],x[2],x[3])
 }else if(distribution_df==2){
      log_lik<-function(x) -gev_negloglik(x[1], x[2])
+     gev_qf<-function(x, p) gev_quantile(p,x[1],x[2])
 }
 
+conf_limits=matrix(NA,ncol=2,nrow=length(flood_return))
 for(i in 1:length(flood_return)){
-    conf_limits[i,]=profile_function(var_to_profile<-function(x, p=(1-1/(flood_return))) gev_quantile(p,x),
+    conf_limits[i,]=profile_function(var_to_profile<-function(x) gev_qf(x,p=1-1/(flood_return[i])),
                                      log_lik=log_lik,
                                      maxlikpar=x@coef,
                                      level=cilevel)
 }
+
 ### Compute confidence limits
 ## Use the asymptotic ci's from mle
 #tmp = coef(summary(x))
@@ -241,8 +245,8 @@ fitted_model = gev_quantile(1-1/flood_return,coef(x)[1],coef(x)[2],coef(x)[3])
 plot(flood_return, fitted_model ,
      log='x',t='l', ylim=c(min(conf_limits),max(conf_limits)), xlab='AEP of 1/Y Years', ylab='Discharge (m^3/s)',
      main=river_site,cex.main=1.5)
-points(flood_return,conf_limits[1,],t='l',col=2,lty='dashed')
-points(flood_return,conf_limits[2,],t='l',col=2,lty='dashed')
+points(flood_return,conf_limits[,1],t='l',col=2,lty='dashed')
+points(flood_return,conf_limits[,2],t='l',col=2,lty='dashed')
 points(1/Q_AEP_est, Q_muda,col='steelblue',pch=19)
 grid(nx=10,ny=10)
 legend('topleft', c(paste('Fitted curve (', distribution, ', maxlikelihood)', sep=""), 
@@ -252,7 +256,7 @@ legend('topleft', c(paste('Fitted curve (', distribution, ', maxlikelihood)', se
 dev.off()
 
 ## Write data for later plotting / investigation
-write.table(cbind(flood_return,fitted_model, conf_limits[1,], conf_limits[2,]), 
+write.table(cbind(flood_return,fitted_model, conf_limits[,1], conf_limits[,2]), 
             file=paste('Fitted_',distribution,'_', river_site, '_proflike.txt', sep=''), 
             col.names=c('AEP of 1/Y', 'Model (Max Likelihood)', paste('lower ci',cilevel), 
             paste('upper ci',cilevel)), row.names=FALSE, sep="," )
