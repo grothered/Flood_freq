@@ -72,7 +72,7 @@ par(mfrow=c(2,2))
 summary(muda_gev2)
 
 # We can do a profile-likelihood plot for a single return level
-gevrlevelPlot(muda_gev2,100)
+gevrlevelPlot(muda_gev2,100,ci=0.9)
 
 # It's nice to have the complete return level plot -- one way to do this is
 # with a loop to calculate the return levels for enough points to do the plot. 
