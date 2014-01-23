@@ -19,20 +19,23 @@ profile_function<-function(var_to_profile, log_lik, maxlikpar,
         # Function used with optim to get range of a function within the acceptable likelihood region
         if(lowerCI){
             # Minimised to get lower CI
-            #out=var_to_profile(x) + ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
-            out=var_to_profile(x) + max(0, -(log_lik(x) - (log_lik(maxlikpar)-qchisq(level,1)/2)))*.Machine$double.xmax
+            out=var_to_profile(x) + ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
+            #out=var_to_profile(x) + max(0, -(log_lik(x) - (log_lik(maxlikpar)-qchisq(level,1)/2)))*.Machine$double.xmax
         }else{
             # Maximised to get upper CI
-            #out=var_to_profile(x) - ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
-            out=var_to_profile(x) - max(0, -(log_lik(x) - (log_lik(maxlikpar)-qchisq(level,1)/2)))*.Machine$double.xmax
+            out=var_to_profile(x) - ( (log_lik(x) < log_lik(maxlikpar)-qchisq(level,1)/2))*.Machine$double.xmax
+            #out=var_to_profile(x) - max(0, -(log_lik(x) - (log_lik(maxlikpar)-qchisq(level,1)/2)))*.Machine$double.xmax
         }
         return(out)
     }
     # Find the min/max value of var_to_profile within the acceptable likelihood region
     lowerP=optim(searchStart[1,], f , method=optim.method, control=list(maxit=maxit)) 
+    #lowerP=DEoptim(f,c(0,140,445),c(0.7,180,455),control=DEoptim.control(itermax=2000,strategy=3))
     #lowerP=optim(lowerP$par, f , method=optim.method, control=list(maxit=maxit)) 
     upperP=optim(searchStart[2,],f,lowerCI=FALSE, method=optim.method, control=list(fnscale=-1,maxit=maxit))
+    #upperP=DEoptim(f2<-function(x) -f(x) ,c(0,140,445),c(0.7,180,455),control=DEoptim.control(itermax=2000,strategy=3))
     #upperP=optim(upperP$par,f,lowerCI=FALSE, method=optim.method, control=list(fnscale=-1,maxit=maxit))
+    #browser()
 
     if(lowerP$convergence!=0 | upperP$convergence!=0) warning('profile_function did not have convergence==0')
 

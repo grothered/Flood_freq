@@ -10,7 +10,7 @@
 #######################################################
 river_site='Muda River'
 input_data=scan('Muda_discharge.txt') # Input data = vector of discharges
-distribution='gev'  # Set to 'gum', 'gev', or 'lp3'
+distribution='gev' #'gev'  # Set to 'gum', 'gev', or 'lp3'
 alpha=0.4 # Adjustment factor in empirical AEPs. See Kuczera and Franks, Draft ARR
 cilevel = 0.90 # Level of confidence intervals
 flood_return=c(1.1,1.3,1.5,1.8,2,3,5,7,10,seq(15,100,by=5)) # Return levels
@@ -176,7 +176,7 @@ mleFit = mle(gev_negloglik, start=muda_startpars, nobs=n, method='Nelder-Mead')
     ### Compute confidence limits
     ## Use the asymptotic ci's from mle
     tmp = coef(summary(mleFit))
-    ## According to Bolker, the parameter estimates are normally distributed
+    ## According to Bolker, the parameter estimates are asymptotically normally distributed
     ## Here, we take confidence limits that are deliberately too large. Later
     ## we will search through this region for parameter values which are within
     ## the asymptotic profile likelihood confidence limits
@@ -321,11 +321,21 @@ xxx=MCMCmetrop1R(log_lik_prt,mleFit@coef,burnin=10000,mcmc=1e+06)
 xxxLL=apply(as.matrix(xxx),1,log_lik_prt)
 # Compute q100 stats
 xxQ100=apply(as.matrix(xxx),1, f<-function(x) gev_qf(x,p=0.99))
+#xxQ100=qgev(0.99,xxx[,1],xxx[,2],xxx[,3])
 # Find where LL is in the acceptable zone
-xxTmp=which(xxxLL>log_lik_prt(mleFit@coef)-qchisq(0.95,1)/2)
+xxTmp=which(xxxLL>log_lik_prt(mleFit@coef)-qchisq(cilevel,1)/2)
 summary(xxQ100[xxTmp])
-xxx[xxTmp[which.max(xxQ100[xxTmp])],]
+maxPars=xxx[xxTmp[which.max(xxQ100[xxTmp])],]
+minPars=xxx[xxTmp[which.min(xxQ100[xxTmp])],]
 # This may suggest that the profile likelihood search tends to miss the most
 # extreme regions that are still within the 'acceptable zone'
 
+# Try to use these as starting values for prof likelihood -- seems a legit method, could work well
+i=length(flood_return)
+profile_function(var_to_profile<-function(x) gev_qf(x,p=1-1/(flood_return[i])),
+                                         log_lik=log_lik,
+                                         maxlikpar=mleFit@coef,
+                                         searchStart=rbind(minPars,maxPars),
+                                         level=cilevel,
+                                         method='Nelder-Mead')
 
