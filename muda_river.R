@@ -61,6 +61,50 @@ gev.diag(muda_gev)
 gev.prof(muda_gev, 50, xlow=800, xup=3000)
 # And so on ...
 
+############################################################################
+library(MCMCpack)
+LogLik<-function(par) {
+    # Return positive log likelihood
+    # Get rid of NA's, since MCMCpack doesn't work with them 
+    out=sum(log(dgev(Q_muda, par[1],par[2], par[3])))+ # Add uniform prior
+        log(par[1]> -10 & par[1] < 10) + 
+        log(par[2]<10000 & par[2] > 0) + 
+        log(par[3] <10000 & par[3] > 0)
+    if(is.na(out)) out=-Inf
+    return(out)
+}
+bayesFit=MCMCmetrop1R(LogLik, theta.init=c(0.1, 450, 160), 
+                      thin=10, mcmc=1000000, tune=2)
+# Run again for Gelman diagnostic
+bayesFit2=MCMCmetrop1R(LogLik, theta.init=c(0.1, 451, 161), 
+                      thin=10, mcmc=1000000, tune=2,seed=1)
+bayesFit3=MCMCmetrop1R(LogLik, theta.init=c(0.12, 453, 163), 
+                      thin=10, mcmc=1000000, tune=2)
+bdraws=mcmc.list(list(bayesFit,bayesFit2, bayesFit3))
+# Check convergence
+library(coda)
+geweke.diag(bayesFit) # z score comparing means in first 10% and last 50% Shouldn't be a large z score
+cumuplot(bayesFit) # Plot of running mean + spread of each variable
+autocorr.plot(bayesFit)
+gelman.diag(bdraws) # Estimate scale reduction factor
+heidel.diag(bayesFit) # Null hypothesis of stationary chains
+# Compute log likelihood
+ll=apply(as.matrix(bayesFit), 1,LogLik)
+# Get q50 for each MCMC sample
+q50=qgev(0.98,bayesFit[,1], bayesFit[,2],bayesFit[,3])
+quantile(c(q50), c(0.025, 0.975))
+# What about Maximum likelihood principles?
+mlConfR=which(ll>max(ll)-qchisq(0.95,1)/2)
+range(q50[mlConfR])
+## Try highest density interval
+HPDinterval(q50)
+HPDinterval(qgev(0.98, bayesFit2[,1], bayesFit2[,2], bayesFit2[,3]))
+HPDinterval(qgev(0.98, bayesFit3[,1], bayesFit3[,2], bayesFit3[,3]))
+q100=qgev(0.99,bayesFit[,1], bayesFit[,2],bayesFit[,3])
+HPDinterval(q100)
+HPDinterval(qgev(0.99, bayesFit2[,1], bayesFit2[,2], bayesFit2[,3]))
+HPDinterval(qgev(0.99, bayesFit3[,1], bayesFit3[,2], bayesFit3[,3]))
+# We can see the need for a longer MCMC run here
 
 ########################################################################
 # The 'fExtremes' package provides the option for a more realistic 'profile
