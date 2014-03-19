@@ -11,7 +11,7 @@ dlp3<-function(x,shape, scale, thresh=0,log=FALSE){
     return(fx)
 }
 
-plp3<-function(x, shape, scale, thresh=0,lower.tail=TRUE, log.p=FALSE){
+plp3<-function(q, shape, scale, thresh=0,lower.tail=TRUE, log.p=FALSE){
     # CDF for log pearson type 3 distribution
     #
     # Idea: sign(scale)*[log(x)-thresh] has a gamma distribution with parameters shape,abs(scale)
@@ -19,9 +19,9 @@ plp3<-function(x, shape, scale, thresh=0,lower.tail=TRUE, log.p=FALSE){
     # Idea: pgamma( q, shape, scale) = pgamma(scale*q, shape, 1)
 
     # Ensure shape, scale,thresh have length=length(x)
-    scale=x*0+scale
-    shape=x*0+shape
-    thresh=x*0+thresh
+    scale=q*0+scale
+    shape=q*0+shape
+    thresh=q*0+thresh
 
     # Find where scale >0
     mm=(scale>=0)
@@ -31,7 +31,7 @@ plp3<-function(x, shape, scale, thresh=0,lower.tail=TRUE, log.p=FALSE){
     if(sum(mm)>0){
         indz=which(mm)
         # Compute log(p)
-        log_p[indz]=pgamma( (log(x[indz]) - thresh[indz]), shape[indz], scale[indz], lower.tail=lower.tail, log.p=TRUE)
+        log_p[indz]=pgamma( (log(q[indz]) - thresh[indz]), shape[indz], scale[indz], lower.tail=lower.tail, log.p=TRUE)
     
         if(log.p==FALSE) log_p[indz]=exp(log_p)
     }
@@ -53,7 +53,7 @@ plp3<-function(x, shape, scale, thresh=0,lower.tail=TRUE, log.p=FALSE){
         #if(log.p==TRUE) log_p[indz]=log(log_p)
 
         log_p[indz]=
-                     1- pgamma(sign(scale[indz])*(log(x[indz])-thresh[indz]), 
+                     1- pgamma(sign(scale[indz])*(log(q[indz])-thresh[indz]), 
                                shape[indz],abs(scale[indz]),
                                lower.tail=lower.tail,log.p=FALSE)
         if(log.p==TRUE) log_p[indz]=log(log_p)
