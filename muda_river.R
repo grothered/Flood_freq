@@ -58,6 +58,7 @@ muda_gev=gev.fit(Q_muda) # muda_gum describes the fitted distribution
 # Look at diagnostic plot.
 gev.diag(muda_gev)
 
+gev.prof(muda_gev, 50, xlow=800, xup=3000)
 # And so on ...
 
 
