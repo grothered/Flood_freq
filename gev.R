@@ -2,7 +2,7 @@
 ## log=FALSE bug in dgev, and so I can distribute gev code without the
 ## many dependencies of fExtremes
 
-dgev<-function(x, shape = 1, scale = 1, location = 0, log = FALSE){
+dgev<-function(x, location=0, scale=1, shape = 1, log = FALSE){
     # Adapted from .devd in fExtremes
     stopifnot(min(scale) > 0)
     stopifnot(length(shape) == 1)
@@ -79,3 +79,37 @@ rgev<-function (n, location = 0, scale = 1, shape = 0){
     return(r)
 }
 
+
+#############################
+test_gev_code<-function(){
+    x=seq(0,1000,len=100)
+    p=seq(0,1,len=101)
+    #library(fExtremes) # Should be identical to this
+    
+    xd=dgev(x, shape=0.2, location=200,scale=100)
+    xq=qgev(p, shape=0.2, location=200,scale=100)
+    xp=pgev(x, shape=0.2, location=200,scale=100)
+    set.seed(1) 
+    xr=rgev(100, shape=0.2, location=200,scale=100)
+
+
+    library(fExtremes)
+    yd=fExtremes::dgev(x,xi=0.2,mu=200,beta=100)
+    
+    stopifnot(all(xd==yd))
+    print('PASS - same as dgev fExtremes')
+
+    yq=fExtremes::qgev(p,xi=0.2,mu=200,beta=100)
+    stopifnot(all(xq==yq))
+    print('PASS - same as qgev fExtremes')
+
+    yp=fExtremes::pgev(x,xi=0.2,mu=200,beta=100)
+    stopifnot(all(xp==yp))
+    print('PASS - same as pgev fExtremes')
+   
+    set.seed(1) 
+    yr=fExtremes::rgev(100,xi=0.2,mu=200,beta=100)
+    stopifnot(all(xr==yr))
+    print('PASS - same as rgev fExtremes')
+
+}
